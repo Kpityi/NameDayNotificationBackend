@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "es2020", // or "esnext" based on your needs
+    "module": "commonjs",
+    "rootDir": "./src/",
+    "outDir": "./dist",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "sourceMap": true // Uncomment if needed
+    // "allowJs": true,  // Uncomment if you plan to mix JS files
+    // "noEmitOnError": true // Uncomment to prevent output on errors
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"]
+}
