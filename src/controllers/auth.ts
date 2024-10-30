@@ -19,7 +19,7 @@ export const signup: RequestHandler = async (req: Request, res: Response) => {
 
   const sendConfirmation = async (email: string) => {
     const token = jwt.sign({ email }, JWT_SECRET, { expiresIn: "1h" });
-    const url = `http://${FRONTEND_URL}/confirmation/${token}`;
+    const url = `${FRONTEND_URL}/confirmation/${token}`;
 
     await transporter.sendMail({
       to: email,
