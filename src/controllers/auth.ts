@@ -13,20 +13,20 @@ interface userData extends Request {
   password: string;
 }
 
+const sendConfirmation = async (email: string) => {
+  const token = jwt.sign({ email }, JWT_SECRET, { expiresIn: "1h" });
+  const url = `${FRONTEND_URL}/confirmation/${token}`;
+
+  await transporter.sendMail({
+    to: email,
+    subject: "Email megerősítése",
+    html: `Kérem erősítse meg e-mail címét: <a href="${url}">kattintson ide!</a>`,
+  });
+};
+
 // Registration
 export const signup: RequestHandler = async (req: Request, res: Response) => {
   const { firstName, lastName, email, password }: userData = req.body;
-
-  const sendConfirmation = async (email: string) => {
-    const token = jwt.sign({ email }, JWT_SECRET, { expiresIn: "1h" });
-    const url = `${FRONTEND_URL}/confirmation/${token}`;
-
-    await transporter.sendMail({
-      to: email,
-      subject: "Email megerősítése",
-      html: `Kérem erősítse meg e-mail címét: <a href="${url}">kattintson ide!</a>`,
-    });
-  };
 
   //check user alrady exists
   const isUserSql = "SELECT `isValid` FROM `users` WHERE email=?";
@@ -96,5 +96,41 @@ export const confirmEmail = async (req: Request, res: Response) => {
     res
       .status(400)
       .json({ error: "Érvénytelen vagy lejárt adatok kérem próbálja újra" });
+  }
+};
+
+export const login: RequestHandler = async (req: Request, res: Response) => {
+  const { email, password }: userData = req.body;
+
+  const isUser = `SELECT * FROM users WHERE email=?;`;
+
+  try {
+    const result = await db.query<RowDataPacket[]>(isUser, [email]);
+    console.log("result: ", result); //pityi
+    if (result.length > 0) {
+      if (!(result[0].isValid === 1)) {
+        sendConfirmation(email);
+        res.status(409).json({
+          message: "Kérem aktiválja fiókját! Új aktiváló e-mailt küldtük.",
+        });
+        return;
+      }
+      if (await bcrypt.compare(password, result[0].password)) {
+        const userId = result[0].id;
+        const token = jwt.sign({ userId: userId }, JWT_SECRET, {
+          expiresIn: "24h",
+        });
+
+        res.status(200).json({ token: token });
+        return;
+      } else {
+        res.status(409).json({ message: "Hibás jelszó" });
+        return;
+      }
+    }
+    res.status(409).json({ message: "Hibás, vagy nem létező email cím" });
+    return;
+  } catch (error) {
+    res.status(500).json(error);
   }
 };
