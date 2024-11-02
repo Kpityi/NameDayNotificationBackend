@@ -3,7 +3,7 @@ import db from "../config/db";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import transporter from "../config/nodemailer";
-import { FRONTEND_URL, JWT_SECRET } from "../config/environment";
+import { FRONTEND_URL, JWT_SECRET, TOKEN_SECURE } from "../config/environment";
 import { RowDataPacket, ResultSetHeader } from "mysql2";
 
 interface userData extends Request {
@@ -102,7 +102,17 @@ export const confirmEmail = async (req: Request, res: Response) => {
 export const login: RequestHandler = async (req: Request, res: Response) => {
   const { email, password }: userData = req.body;
 
-  const isUser = `SELECT * FROM users WHERE email=?;`;
+  const isUser = `SELECT users.id AS id, 
+                         first_name, 
+                         last_name, 
+                         email, 
+                         password, 
+                         registration_date, 
+                         roles.role AS role, 
+                         isValid 
+                    FROM users
+                    INNER JOIN roles ON role_id=roles.id
+                    WHERE email=?;`;
 
   try {
     const result = await db.query<RowDataPacket[]>(isUser, [email]);
@@ -121,7 +131,15 @@ export const login: RequestHandler = async (req: Request, res: Response) => {
           expiresIn: "24h",
         });
 
-        res.status(200).json({ token: token });
+        const { password, ...user } = result[0];
+
+        res.cookie("token", token, {
+          httpOnly: true,
+          secure: TOKEN_SECURE,
+          sameSite: "lax",
+          maxAge: 24 * 60 * 60 * 1000,
+        });
+        res.status(200).json(user);
         return;
       } else {
         res.status(409).json({ message: "Hibás jelszó" });
