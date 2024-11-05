@@ -1,9 +1,11 @@
 import express from "express";
+import { Request, Response } from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import "dotenv/config";
 import { FRONTEND_URL, PORT } from "./config/environment";
-import authRutes from "./routes/auth";
+import authRoutes from "./routes/auth";
+import namedaysRoutes from "./routes/getnames";
 
 const app = express();
 app.use(
@@ -22,7 +24,8 @@ app.use(express.static("public"));
 
 app.use(express.json());
 
-app.use("/api/auth", authRutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/getnames", namedaysRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
