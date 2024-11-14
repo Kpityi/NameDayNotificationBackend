@@ -5,6 +5,7 @@ import "dotenv/config";
 import { FRONTEND_URL, PORT } from "./config/environment";
 import authRoutes from "./routes/auth";
 import namedaysRoutes from "./routes/getNames";
+import notificationsRoutes from "./routes/Notificatoins";
 
 const app = express();
 app.use(
@@ -25,6 +26,7 @@ app.use(express.json());
 
 app.use("/api/auth", authRoutes);
 app.use("/api/getnames", namedaysRoutes);
+app.use("/api/getnotifications", notificationsRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
