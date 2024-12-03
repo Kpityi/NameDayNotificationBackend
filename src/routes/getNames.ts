@@ -1,8 +1,9 @@
 import express from "express";
-import { getNamedays } from "../controllers/getNames";
+import { getNamedays, getNamesOfDay } from "../controllers/getNames";
 
 const router = express.Router();
 
-router.post("/", getNamedays);
+router.post("/", getNamesOfDay);
+router.post("/name", getNamedays);
 
 export default router;

@@ -134,7 +134,7 @@ export const login: RequestHandler = async (req: Request, res: Response) => {
         const { password, ...user } = result[0];
 
         res.cookie("token", token, {
-          httpOnly: true,
+          httpOnly: false,
           secure: TOKEN_SECURE,
           sameSite: "lax",
           maxAge: 24 * 60 * 60 * 1000,
