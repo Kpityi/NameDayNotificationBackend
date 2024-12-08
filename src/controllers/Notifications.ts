@@ -4,25 +4,48 @@ import { JWT_SECRET } from "../config/environment";
 import db from "../config/db";
 import { ResultSetHeader, RowDataPacket } from "mysql2";
 import transporter from "../config/nodemailer";
+import {
+  sqlAddNameday,
+  sqlDeleteNameDay,
+  sqlNamedayNotification3DayBefore,
+  sqlNamedayNotificationToday,
+  sqlNamedays,
+} from "../sql/nameDay";
+import {
+  sqlAddOccasion,
+  sqlDeleteOccasion,
+  sqlOccasionNotification3DayBefore,
+  SqloccasionNotificationToday,
+  sqlOccasions,
+} from "../sql/occasion";
+import {
+  sqlAddCustom,
+  sqlCustom,
+  SqlcustomNotification3DayBefore,
+  sqlCustomNotificationToday,
+  sqlDeleteCustom,
+} from "../sql/custom";
 
 interface NotificationsProps {
   nameDays: object;
   occasions: object;
   custom: object;
 }
-interface sendEmailToProps {
+interface SendEmailToProps {
   userId: number;
-  name_day_today: string;
-  name_day_3_day_befor: string;
+  name_day_today?: string;
+  name_day_3_day_before?: string;
+  occasion?: string;
+  custom?: string;
   email: string;
   last_name: string;
 }
 
+//Get all notifications
 export const getNotifications = async (req: Request, res: Response) => {
   const token = jwt.verify(req.cookies?.token, JWT_SECRET) as {
     userId: string;
   };
-  console.log(token);
 
   const userId: string = token.userId;
   const notifications: NotificationsProps = {
@@ -30,28 +53,6 @@ export const getNotifications = async (req: Request, res: Response) => {
     occasions: [],
     custom: [],
   };
-
-  //get name days notifications
-
-  const sqlNamedays = `SELECT ndn.id, 
-                              nd.month, 
-                              nd.day, 
-                              nd.name 
-                        FROM name_day_notifications AS ndn 
-                        INNER JOIN name_days AS nd ON ndn.name_day_id = nd.id
-                        WHERE ndn.user_id = ?; `;
-
-  //get Occasion notifications
-
-  const sqlOccasions = `SELECT  id, 
-                                month, 
-                                day, 
-                                occasion 
-                        FROM occasions_notifications WHERE user_id=?`;
-
-  //get Custom notifications
-
-  const sqlCustom = `SELECT id, date, text FROM custom_notifications WHERE user_id=?`;
 
   try {
     const nameDaysResult = await db.query(sqlNamedays, [userId]);
@@ -66,17 +67,15 @@ export const getNotifications = async (req: Request, res: Response) => {
   }
 };
 
+//Delete notification --Name day--
 export const deleteNameDayNotificaction = async (
   req: Request,
   res: Response
 ) => {
   const id = req.params.id;
-  console.log("name day id: ", id); //pityi
-
-  const sql = "DELETE FROM name_day_notifications WHERE id=?";
 
   try {
-    const result = await db.query<ResultSetHeader>(sql, [id]);
+    const result = await db.query<ResultSetHeader>(sqlDeleteNameDay, [id]);
     if (result.affectedRows) {
       res.status(200).json({ message: "Értesítés törlése sikeres!" });
     }
@@ -85,16 +84,15 @@ export const deleteNameDayNotificaction = async (
   }
 };
 
+//Delete notification --Occasion--
 export const deleteOccasionNotificaction = async (
   req: Request,
   res: Response
 ) => {
   const id = req.params.id;
-  console.log("occasion id: ", id); //pityi
-  const sql = "DELETE FROM occasions_notifications WHERE id = ?";
 
   try {
-    const result = await db.query<ResultSetHeader>(sql, [id]);
+    const result = await db.query<ResultSetHeader>(sqlDeleteOccasion, [id]);
     if (result.affectedRows) {
       res.status(200).json({ message: "Értesítés törlése sikeres!" });
     }
@@ -103,16 +101,15 @@ export const deleteOccasionNotificaction = async (
   }
 };
 
+//Delete notification --Custom--
 export const deleteCustomNotificaction = async (
   req: Request,
   res: Response
 ) => {
   const id = req.params.id;
-  console.log("custom id: ", id); //pityi
-  const sql = "DELETE FROM custom_notifications WHERE id=?";
 
   try {
-    const result = await db.query<ResultSetHeader>(sql, [id]);
+    const result = await db.query<ResultSetHeader>(sqlDeleteCustom, [id]);
     if (result.affectedRows) {
       res.status(200).json({ message: "Értesítés törlése sikeres!" });
     }
@@ -121,6 +118,7 @@ export const deleteCustomNotificaction = async (
   }
 };
 
+//Add notification --Name day--
 export const addNameDayNotification = async (req: Request, res: Response) => {
   const id = req.params.id;
 
@@ -128,12 +126,9 @@ export const addNameDayNotification = async (req: Request, res: Response) => {
     userId: string;
   };
   const userId: string = token.userId;
-  console.log(`user id: ${userId}; id: ${id}`); //pitiy
-  const sql =
-    "INSERT INTO `name_day_notifications`(`user_id`, `name_day_id`) VALUES (?,?)";
 
   try {
-    const result = await db.query<ResultSetHeader>(sql, [userId, id]);
+    const result = await db.query<ResultSetHeader>(sqlAddNameday, [userId, id]);
     if (result.affectedRows > 0) {
       res
         .status(200)
@@ -146,87 +141,236 @@ export const addNameDayNotification = async (req: Request, res: Response) => {
   }
 };
 
+//Add notification --Occasion--
+export const addOccasionNotification = async (req: Request, res: Response) => {
+  const { month, day, occasion } = req.body;
+
+  const token = jwt.verify(req.cookies?.token, JWT_SECRET) as {
+    userId: string;
+  };
+  const userId: string = token.userId;
+
+  try {
+    const result = await db.query<ResultSetHeader>(sqlAddOccasion, [
+      userId,
+      month,
+      day,
+      occasion,
+    ]);
+    if (result.affectedRows > 0) {
+      res.status(200).json({ message: "Emlékeztető hozááadása sikeres!" });
+    }
+  } catch (error) {
+    res.status(409).json({
+      message: "Emlékeztető hozzáadása sikertelen, kérjük próbálkozzon később!",
+    });
+  }
+};
+
+//Add notification --Custom--
+export const addCustomNotification = async (req: Request, res: Response) => {
+  const { year, month, day, text } = req.body;
+  const date = `${year}-${month}-${day}`;
+
+  const token = jwt.verify(req.cookies?.token, JWT_SECRET) as {
+    userId: string;
+  };
+  const userId: string = token.userId;
+
+  try {
+    const result = await db.query<ResultSetHeader>(sqlAddCustom, [
+      userId,
+      date,
+      text,
+    ]);
+    if (result.affectedRows > 0) {
+      res.status(200).json({ message: "Emlékeztető hozááadása sikeres!" });
+    }
+  } catch (error) {
+    res.status(409).json({
+      message: "Emlékeztető hozzáadása sikertelen, kérjük próbálkozzon később!",
+    });
+  }
+};
+
 export const sendNotificationEmail = async (req: Request, res: Response) => {
   const dayInMilisecond = 1000 * 60 * 60 * 24;
   const today = new Date();
   const threeDayBefore = new Date(Number(today) + dayInMilisecond * 3);
-  //const currentYear = today.getFullYear();
+  const date = today.toISOString().split("T")[0];
+  const dateThreeDayBefore = threeDayBefore.toISOString().split("T")[0];
   const currentMonth = today.getMonth() + 1;
   const currentDay = today.getDate();
-  //const threeDayBeforeYear = threeDayBefore.getFullYear();
   const threeDayBeforeMonth = threeDayBefore.getMonth() + 1;
   const threeDayBeforeDay = threeDayBefore.getDate();
-  const sendEmailTo: sendEmailToProps[] = [];
-
-  //SQL: name day query three days earlier
-  const namedayNotification3DayBeforeSql = `SELECT  ndn.user_id, 
-                                                    nd.name, 
-                                                    users.email,
-                                                    users.last_name 
-                                                FROM name_day_notifications AS ndn 
-                                                INNER JOIN name_days AS nd ON ndn.name_day_id=nd.id
-                                                INNER JOIN users ON ndn.user_id=users.id                                                 
-                                                WHERE nd.month=? AND nd.day=?`;
-
-  //SQL: name days today
-  const namedayNotificationTodaySql = `SELECT ndn.user_id, 
-                                              nd.name, 
-                                              users.email,
-                                              users.last_name 
-                                          FROM name_day_notifications AS ndn 
-                                          INNER JOIN name_days AS nd ON ndn.name_day_id=nd.id
-                                          INNER JOIN users ON ndn.user_id=users.id                                             
-                                          WHERE nd.month=? AND nd.day=?`;
+  const sendEmailTo: SendEmailToProps[] = [];
 
   try {
     //name day notification 3 days earlier
     const resultnameDay3DaysBefore = await db.query<RowDataPacket[]>(
-      namedayNotification3DayBeforeSql,
+      sqlNamedayNotification3DayBefore,
       [threeDayBeforeMonth, threeDayBeforeDay]
     );
     if (resultnameDay3DaysBefore.length > 0) {
       resultnameDay3DaysBefore.forEach((notification) => {
-        const indexOfUserId = sendEmailTo.findIndex(
+        const user = sendEmailTo.find(
           (user) => user.userId === notification.user_id
         );
 
-        if (indexOfUserId === -1) {
+        if (!user) {
           sendEmailTo.push({
             userId: notification.user_id,
-            name_day_3_day_befor: notification.name,
-            name_day_today: "",
+            name_day_3_day_before: notification.name,
             email: notification.email,
             last_name: notification.last_name,
           });
         } else {
-          sendEmailTo[
-            indexOfUserId
-          ].name_day_3_day_befor += `, ${notification.name}`;
+          if (user.name_day_3_day_before == undefined) {
+            user.name_day_3_day_before = `${notification.name}`;
+          } else {
+            user.name_day_3_day_before += `, ${notification.name}`;
+          }
         }
       });
     }
 
     //name day notification today
     const resultnameDayToday = await db.query<RowDataPacket[]>(
-      namedayNotificationTodaySql,
+      sqlNamedayNotificationToday,
       [currentMonth, currentDay]
     );
     if (resultnameDayToday.length > 0) {
       resultnameDayToday.forEach((notification) => {
-        const indexOfUserId = sendEmailTo.findIndex(
+        const user = sendEmailTo.find(
           (user) => user.userId === notification.user_id
         );
 
-        if (indexOfUserId === -1) {
+        if (!user) {
           sendEmailTo.push({
             userId: notification.user_id,
-            name_day_3_day_befor: "",
             name_day_today: notification.name,
             email: notification.email,
             last_name: notification.last_name,
           });
         } else {
-          sendEmailTo[indexOfUserId].name_day_today += `, ${notification.name}`;
+          if (user.name_day_today == undefined) {
+            user.name_day_today = `${notification.name}`;
+          } else {
+            user.name_day_today += `, ${notification.name}`;
+          }
+        }
+      });
+    }
+
+    //occasion notification 3 days earlier
+    const resultOccasion3DaysBefore = await db.query<RowDataPacket[]>(
+      sqlOccasionNotification3DayBefore,
+      [threeDayBeforeMonth, threeDayBeforeDay]
+    );
+
+    if (resultOccasion3DaysBefore.length > 0) {
+      resultOccasion3DaysBefore.forEach((notification) => {
+        const user = sendEmailTo.find(
+          (user) => user.userId === notification.user_id
+        );
+
+        if (!user) {
+          sendEmailTo.push({
+            userId: notification.user_id,
+            occasion: `${threeDayBeforeMonth}.${threeDayBeforeDay}. ${notification.occasion}`,
+            email: notification.email,
+            last_name: notification.last_name,
+          });
+        } else {
+          if (user.occasion == undefined) {
+            user.occasion = `${threeDayBeforeMonth}.${threeDayBeforeDay}. ${notification.occasion}`;
+          } else {
+            user.occasion += `, ${threeDayBeforeMonth}.${threeDayBeforeDay}. ${notification.occasion}`;
+          }
+        }
+      });
+    }
+
+    //occasion notification today
+    const resultOccasionToday = await db.query<RowDataPacket[]>(
+      SqloccasionNotificationToday,
+      [currentMonth, currentDay]
+    );
+    if (resultOccasionToday.length > 0) {
+      resultOccasionToday.forEach((notification) => {
+        const user = sendEmailTo.find(
+          (user) => user.userId === notification.user_id
+        );
+
+        if (!user) {
+          sendEmailTo.push({
+            userId: notification.user_id,
+            occasion: `${currentMonth}.${currentDay}. ${notification.occasion}`,
+            email: notification.email,
+            last_name: notification.last_name,
+          });
+        } else {
+          if (user.occasion == undefined) {
+            user.occasion = `${currentMonth}.${currentDay}. ${notification.occasion}`;
+          } else {
+            user.occasion += `, ${currentMonth}.${currentDay}. ${notification.occasion}`;
+          }
+        }
+      });
+    }
+
+    //custom notification 3 days earlier
+    const resultCustom3DaysBefore = await db.query<RowDataPacket[]>(
+      SqlcustomNotification3DayBefore,
+      [dateThreeDayBefore]
+    );
+    if (resultCustom3DaysBefore.length > 0) {
+      resultCustom3DaysBefore.forEach((notification) => {
+        const user = sendEmailTo.find(
+          (user) => user.userId === notification.user_id
+        );
+
+        if (!user) {
+          sendEmailTo.push({
+            userId: notification.user_id,
+            custom: `${dateThreeDayBefore}. ${notification.occasion}`,
+            email: notification.email,
+            last_name: notification.last_name,
+          });
+        } else {
+          if (user.custom == undefined) {
+            user.custom = `${dateThreeDayBefore}. ${notification.text}`;
+          } else {
+            user.custom += `, ${dateThreeDayBefore}. ${notification.text}`;
+          }
+        }
+      });
+    }
+
+    //custom notification today
+    const resultCustomToday = await db.query<RowDataPacket[]>(
+      sqlCustomNotificationToday,
+      [date]
+    );
+    if (resultCustomToday.length > 0) {
+      resultCustomToday.forEach((notification) => {
+        const user = sendEmailTo.find(
+          (user) => user.userId === notification.user_id
+        );
+
+        if (!user) {
+          sendEmailTo.push({
+            userId: notification.user_id,
+            custom: `${date}. ${notification.text}`,
+            email: notification.email,
+            last_name: notification.last_name,
+          });
+        } else {
+          if (user.custom == undefined) {
+            user.custom = `${date}. ${notification.text}`;
+          } else {
+            user.custom += `, ${date}. ${notification.text}`;
+          }
         }
       });
     }
@@ -251,6 +395,9 @@ export const sendNotificationEmail = async (req: Request, res: Response) => {
                 .name {
                   text-align: center;
                 }
+                .none{
+                  heiht: 0;
+                }
               </style>
               <title>Name day notification</title>
             </head>
@@ -262,12 +409,40 @@ export const sendNotificationEmail = async (req: Request, res: Response) => {
                     Azért kaptad ezt a levelet mert Azért kaptad ezt a levelet mert az
                     oldalon a következő emlékeztetőket állítottad be:
                   </p>
-                  <p><span class="bold">Névnapok a mai napon ${today.toLocaleDateString()} : </span> <span> ${
-          user.name_day_today
-        }</span></p>
-                  <p><span class="bold">Közelgő névnapok ${threeDayBefore.toLocaleDateString()} : </span> <span>${
-          user.name_day_3_day_befor
-        }</span></p>
+      ${
+        user.name_day_today
+          ? `
+        
+        <p><span class="bold">Névnapok a mai napon ${today.toLocaleDateString()} : </span> <span> ${
+              user.name_day_today
+            }</span></p>
+        `
+          : `<span class="none"></span>`
+      }
+      ${
+        user.name_day_3_day_before
+          ? `
+        <p><span class="bold">Közelgő névnapok ${threeDayBefore.toLocaleDateString()} : </span> <span>${
+              user.name_day_3_day_before
+            }</span></p>
+        `
+          : `<span class="none"></span>`
+      }
+      ${
+        user.occasion
+          ? `
+        <p><span class="bold">Fontos alkalmak:</span> <span>${user.occasion}</span> </p>
+        `
+          : `<span class="none"></span>`
+      }
+      ${
+        user.custom
+          ? `
+        <p><span class="bold">Egyedi emlékeztetők:</span>  <span>${user.custom}<span> </p>
+        
+        `
+          : `<span class="none"></span>`
+      }
                 </div>
               </div>
             </body>
@@ -282,7 +457,7 @@ export const sendNotificationEmail = async (req: Request, res: Response) => {
       });
     }
 
-    res.json("Emails sent successful");
+    res.json(sendEmailTo);
   } catch (error) {
     res.json(error);
   }

@@ -1,6 +1,8 @@
 import express from "express";
 import {
+  addCustomNotification,
   addNameDayNotification,
+  addOccasionNotification,
   deleteCustomNotificaction,
   deleteNameDayNotificaction,
   deleteOccasionNotificaction,
@@ -15,5 +17,7 @@ router.delete("/namedays/:id", deleteNameDayNotificaction);
 router.delete("/occasions/:id", deleteOccasionNotificaction);
 router.delete("/customs/:id", deleteCustomNotificaction);
 router.post("/add/nameday/:id", addNameDayNotification);
+router.post("/add/occasion", addOccasionNotification);
+router.post("/add/custom", addCustomNotification);
 
 export default router;
