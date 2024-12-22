@@ -6,6 +6,7 @@ import { FRONTEND_URL, PORT } from "./config/environment";
 import authRoutes from "./routes/auth";
 import namedaysRoutes from "./routes/getNames";
 import notificationsRoutes from "./routes/Notifications";
+import postcardsRoutes from "./routes/postcards";
 
 const app = express();
 app.use(
@@ -27,6 +28,7 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/names", namedaysRoutes);
 app.use("/api/notifications", notificationsRoutes);
+app.use("/api/postcards", postcardsRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

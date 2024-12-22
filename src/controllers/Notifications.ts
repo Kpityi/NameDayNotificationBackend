@@ -406,8 +406,7 @@ export const sendNotificationEmail = async (req: Request, res: Response) => {
                 <h2 class="name">Tisztelt ${user.last_name}</h2>
                 <div class="text">
                   <p>
-                    Azért kaptad ezt a levelet mert Azért kaptad ezt a levelet mert az
-                    oldalon a következő emlékeztetőket állítottad be:
+                    Azért kaptad ezt a levelet mert az oldalon a következő emlékeztetőket állítottad be:
                   </p>
       ${
         user.name_day_today
@@ -457,7 +456,7 @@ export const sendNotificationEmail = async (req: Request, res: Response) => {
       });
     }
 
-    res.json(sendEmailTo);
+    res.json({ message: "Emalil notifications sent succesfully" });
   } catch (error) {
     res.json(error);
   }

@@ -24,7 +24,7 @@ const db = mysql.createPool({
 
 async function query<T extends QueryResult>(
   sql: string,
-  params: any[]
+  params?: any[]
 ): Promise<T> {
   const [result] = await db.execute<T>(sql, params);
 
