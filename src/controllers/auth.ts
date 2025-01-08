@@ -3,7 +3,12 @@ import db from "../config/db";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import transporter from "../config/nodemailer";
-import { FRONTEND_URL, JWT_SECRET, TOKEN_SECURE } from "../config/environment";
+import {
+  FRONTEND_URL,
+  JWT_SECRET,
+  NODE_ENV,
+  TOKEN_SECURE,
+} from "../config/environment";
 import { RowDataPacket, ResultSetHeader } from "mysql2";
 
 interface userData extends Request {
@@ -136,7 +141,7 @@ export const login: RequestHandler = async (req: Request, res: Response) => {
         res.cookie("token", token, {
           httpOnly: false,
           secure: TOKEN_SECURE,
-          sameSite: "lax",
+          sameSite: NODE_ENV === "production" ? "none" : "lax",
           maxAge: 24 * 60 * 60 * 1000,
         });
         res.status(200).json(user);

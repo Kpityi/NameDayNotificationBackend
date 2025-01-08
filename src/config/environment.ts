@@ -14,3 +14,4 @@ export const GMAIL_SECRET_KEY: string | undefined =
 export const FRONTEND_URL: string | undefined = process.env.FRONTEND_URL;
 export const TOKEN_SECURE: boolean = Boolean(process.env.TOKEN_SECURE);
 export const BACKEND_URL: string | undefined = process.env.BACKEND_URL;
+export const NODE_ENV: string = process.env.NODE_ENV || "development";
